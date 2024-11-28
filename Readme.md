@@ -13,3 +13,6 @@ Use the email and password from [Sems portal](https://semsportal.com/Home/Login)
 -Powerstation_Id "PowerstationIdFromUrl"
 
 or use the run.ps1 and fill with your parameters file
+
+Credits to original creator of script
+`https://terravolt.co.uk/api-integrations/goodwe-api-integrations/`
