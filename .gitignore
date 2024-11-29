@@ -1,4 +1,3 @@
-/Solceller/run_local.ps1
-/Solceller/Data/InverterAllPoint/
-/Solceller/Data/PowerFlow/
-/Solceller/Metadata/
+/*/run_local.ps1
+/*/Data/
+/*/Metadata/
