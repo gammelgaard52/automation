@@ -1,1 +1,1 @@
-.\Modul\getData.ps1
+.\Modul\getData.ps1 -User "username"

@@ -9,6 +9,25 @@ param(
     [string]$Powerstation_Id
 )
 
+# Import support modules
+Import-Module "..\PowershellCmdlets\psUtilities.psm1"
+
+# Set paths required
+$paths = @(
+    "Data",
+    "Metadata",
+    "Data\InverterAllPoint",
+    "Data\PowerFlow"
+)
+
+# Ensure each path exists
+foreach ($path in $paths) {
+    # Resolve the relative path to an absolute path
+    $absolutePath = (Resolve-Path $path).Path
+    New-FolderIfNotExists -Path $absolutePath -Verbose
+}
+
+# Set date and time for file identification
 $DateTime = (Get-Date).ToString("yyyyMMddHHss")
 
 ##Login to SEMS API ##
