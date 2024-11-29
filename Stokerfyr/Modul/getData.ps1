@@ -15,9 +15,7 @@ $paths = @(
 
 # Ensure each path exists
 foreach ($path in $paths) {
-    # Resolve the relative path to an absolute path
-    $absolutePath = (Resolve-Path $path).Path
-    New-FolderIfNotExists -Path $absolutePath -Verbose
+    New-FolderIfNotExists -Path $path -Verbose
 }
 
 # Set date and time for file identification

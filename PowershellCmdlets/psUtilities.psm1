@@ -6,7 +6,7 @@ function New-FolderIfNotExists {
     )
     
     # Check if the folder exists
-    if (-Not (Test-Path -Path $Path)) {
+    if (-Not ((Resolve-Path $path).Path)) {
         # Create the folder if it doesn't exist
         New-Item -ItemType Directory -Path $Path | Out-Null
         Write-Verbose "Folder created: $Path"
