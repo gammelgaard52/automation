@@ -5,8 +5,6 @@ param(
     [string]$APIkey
 )
 
-$APIkey = "b6qeRdTdWJR2xh85TlDLvoiW28SZPm86"
-
 # Import support modules
 Import-Module "..\PowershellCmdlets\psUtilities.psm1"
 
