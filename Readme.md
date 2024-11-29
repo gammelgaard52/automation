@@ -7,7 +7,7 @@ This code will extract data from Goodwee and AEG inverters using PowerShell
 Use the email and password from [Sems portal](https://semsportal.com/Home/Login), as well as the Powerstation id, listen in the URL after successful login to Sems portal
 `https://semsportal.com/PowerStation/PowerStatusSnMin/xxxxaed6-xxxx-xxxx-xxxx-fa248349xxxx`
 
-.\Module\getData.ps1 `
+.\Solceller\Module\getData.ps1 `
 -Email "YourEmailUsedToLogin" `
 -Password (ConvertTo-SecureString "YourPasswordUsedToLogin" -AsPlainText -Force) `
 -Powerstation_Id "PowerstationIdFromUrl"
