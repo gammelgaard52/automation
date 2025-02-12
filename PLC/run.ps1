@@ -1,0 +1,1 @@
+.\Modul\getData -Ipaddress "hw-p1-meter-ip_address"
