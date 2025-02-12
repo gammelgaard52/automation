@@ -24,8 +24,11 @@ $DateTime = (Get-Date).ToString("yyyyMMddHHss")
 # Send the web request and store the response
 $response = Invoke-WebRequest -Uri "https://www.stokercloud.dk/dev/getjsondriftdata.php?mac=$User"
 
-# Extract the content and decode HTML entities
+# Decode the HTML content
 $decodedContent = [System.Web.HttpUtility]::HtmlDecode($response.Content)
 
-# Convert the decoded content to JSON
-$decodedContent | ConvertFrom-Json | Out-File -FilePath .\Data\$DateTime.json
+# Convert the string to a PowerShell object for better formatting (optional)
+$decodedObject = $decodedContent | ConvertFrom-Json
+
+# Save the formatted JSON to a file
+$decodedObject | ConvertTo-Json -Depth 10 | Out-File -FilePath .\Data\$DateTime.json -Encoding UTF8
