@@ -1,0 +1,1 @@
+.\Modul\getData.ps1 -apikey "" -apiSecret "" -region "" -fullAddress "" -userId ""
