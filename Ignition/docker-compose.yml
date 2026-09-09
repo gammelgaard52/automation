@@ -17,9 +17,7 @@ services:
       TZ: "${TZ:-Europe/Copenhagen}"
 
     volumes:
-      - type: bind
-        source: "${IGNITION_DATA_PATH:-/opt/ignition/data}"
-        target: /usr/local/bin/ignition/data
+      - ignition-data:/usr/local/bin/ignition/data
 
     command:
       - "-n"
@@ -35,3 +33,6 @@ services:
         max-file: "3"
 
     stop_grace_period: 2m
+
+volumes:
+  ignition-data:
