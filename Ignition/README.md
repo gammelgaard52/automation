@@ -9,18 +9,25 @@ This setup is intended for **manual deployment using the Portainer Stack Web edi
 - Official image: `inductiveautomation/ignition:8.3.9`
 - Maker Edition
 - ARM64-compatible image for Raspberry Pi
-- Persistent Ignition data at `/usr/local/bin/ignition/data`
-- Configurable host path for persistent data
+- Persistent Ignition data in a Docker named volume mounted at `/usr/local/bin/ignition/data`
 - HTTP on container port `8088`
 - TLS is expected to be terminated by the existing Caddy instance
-- Docker log rotation is limited to 3 x 10 MB to reduce disk growth
-- Version is pinned to `8.3.9`; it will not automatically move to a newer Ignition release
+- Docker log rotation limited to 3 x 10 MB
+- Version pinned to `8.3.9`
 
 No separate database or other services are deployed.
 
-## 1. Check available disk space first
+## Why a named volume is used
 
-The Ignition 8.3.9 ARM64 image is large. Before deploying, check the filesystem used by Docker:
+Ignition ships initial files inside `/usr/local/bin/ignition/data`, including files required during first startup. Docker automatically copies those existing files into a newly created empty named volume.
+
+Do not replace the named volume with an empty host bind mount for a fresh installation. A bind mount hides the files already present in the image and can cause startup errors such as a missing `gateway.xml_clean`.
+
+The official Ignition Docker examples use a named volume on `/usr/local/bin/ignition/data` for persistent Gateway state.
+
+## 1. Check available disk space
+
+Before deploying, check the filesystem used by Docker:
 
 ```bash
 DOCKER_ROOT="$(sudo docker info --format '{{.DockerRootDir}}')"
@@ -29,123 +36,94 @@ df -h "$DOCKER_ROOT"
 sudo docker system df
 ```
 
-The published ARM64 image is roughly 2 GB compressed. Docker also needs space for unpacked layers and normal runtime growth. As a practical safety margin, have several GB free before the first pull; around 5-6 GB free is a sensible target if possible.
+The container image and the `ignition-data` volume are stored under Docker's data root. The published ARM64 image is large, so keep several GB free before the first pull and normal operation.
 
-If space is tight, inspect usage before deleting anything:
+For detailed Docker usage:
 
 ```bash
 sudo docker system df -v
 ```
 
-Do not run `docker system prune -a` unless you have reviewed what it will remove.
+Do not run `docker system prune -a` without reviewing what it will remove.
 
-The `IGNITION_DATA_PATH` setting controls only the persistent Gateway data. The container image itself is stored under Docker's data root. If the Raspberry Pi has an external SSD, point `IGNITION_DATA_PATH` at that SSD to prevent project/history/data growth from consuming the system disk.
+## 2. Create/update the stack manually in Portainer
 
-Example:
-
-```text
-IGNITION_DATA_PATH=/mnt/ssd/ignition/data
-```
-
-Otherwise the default is:
-
-```text
-/opt/ignition/data
-```
-
-Create the selected directory on the Raspberry Pi before deployment and assign it to Ignition's container user (UID/GID 2003):
-
-```bash
-sudo mkdir -p /opt/ignition/data
-sudo chown -R 2003:2003 /opt/ignition/data
-sudo chmod 750 /opt/ignition/data
-```
-
-Verify:
-
-```bash
-ls -ldn /opt/ignition/data
-```
-
-The owner/group should show `2003 2003`. Do not use `chmod 777`; Ignition only needs the bind-mounted directory to be writable by its own container user.
-
-If `IGNITION_DATA_PATH` points somewhere else, run the same `mkdir`, `chown`, and `chmod` against that path instead.
-
-## 2. Create the stack manually in Portainer
-
-The repository is only the source/reference for the stack definition. Portainer does **not** pull or deploy this repository.
+The repository is only the source/reference for the stack definition. Portainer does **not** deploy directly from this repository.
 
 In Portainer:
 
-1. Go to **Stacks** -> **Add stack**.
-2. Give the stack a name, for example:
+1. Go to **Stacks** -> **Add stack** (or open the existing `ignition` stack when updating it).
+2. Select **Web editor**.
+3. Copy the complete contents of `Ignition/docker-compose.yml` into the editor.
+4. Add the required environment variables below.
+5. Click **Deploy the stack** / **Update the stack**.
 
-   ```text
-   ignition
-   ```
-
-3. Select **Web editor**.
-4. Open `Ignition/docker-compose.yml` from this repository and copy the complete YAML into the Web editor.
-5. Add the required Stack environment variables listed below under **Environment variables**.
-6. Do not enable Git/repository deployment, webhooks, or automatic updates.
-7. Click **Deploy the stack** when ready.
-
-For future changes, update the stack YAML in this repository first, then manually copy the updated YAML into the existing Portainer stack Web editor and redeploy it.
+No Git repository deployment, webhooks, or automatic updates are required.
 
 ## 3. Required Portainer environment variables
 
-Set these in the Portainer Stack UI. Do **not** commit the real values to this repository.
-
-### Required
+Configure these in the Portainer Stack UI and do not commit their real values to Git:
 
 ```text
 GATEWAY_ADMIN_PASSWORD=<choose-a-strong-password>
-IGNITION_LICENSE_KEY=<your-8-character-Maker-license-key>
+IGNITION_LICENSE_KEY=<your-Maker-license-key>
 IGNITION_ACTIVATION_TOKEN=<your-Maker-activation-token>
 ```
 
-### Optional
+Optional overrides:
 
 ```text
 GATEWAY_ADMIN_USERNAME=admin
 IGNITION_GATEWAY_NAME=home-automation
 IGNITION_BIND_ADDRESS=0.0.0.0
 IGNITION_HTTP_PORT=8088
-IGNITION_DATA_PATH=/opt/ignition/data
 TZ=Europe/Copenhagen
 ```
 
-If persistent data should live on an external disk, change only `IGNITION_DATA_PATH`, for example:
+The `.env.example` file is documentation only.
 
-```text
-IGNITION_DATA_PATH=/mnt/ssd/ignition/data
+## 4. Persistence
+
+The stack defines:
+
+```yaml
+volumes:
+  ignition-data:
 ```
 
-The `.env.example` file is documentation only. The actual values should be entered as Portainer Stack environment variables.
+and mounts it as:
 
-## 4. Network exposure
+```yaml
+- ignition-data:/usr/local/bin/ignition/data
+```
+
+The volume persists independently of the container. Recreating or updating the container therefore retains Gateway configuration, projects and other persistent Ignition state as long as the volume is not deleted.
+
+In a Portainer stack the actual Docker volume name may be prefixed with the stack/project name, for example `ignition_ignition-data`.
+
+Do not select **Remove volumes** when removing/recreating the stack unless you intentionally want to delete the Gateway state.
+
+## 5. Network exposure
 
 Only Ignition HTTP port `8088` is published. Ignition HTTPS/8043 is intentionally not published because the existing Caddy instance should terminate HTTPS.
 
-By default the stack publishes:
+By default:
 
 ```text
 0.0.0.0:8088 -> ignition:8088
 ```
 
-If desired, `IGNITION_BIND_ADDRESS` can be changed to the Raspberry Pi's LAN address so the service is not bound to every interface.
-
-Before adding Caddy, test from a machine that can reach the Raspberry Pi:
+Before adding Caddy, test directly:
 
 ```text
 http://<RASPI-LAN-IP>:8088
 ```
 
-## 5. Add the site manually to the existing Caddy configuration
+## 6. Existing Caddy
 
-No Caddy files are changed by this repository.
+No Caddy repository/configuration is changed here.
 
-Add a site block equivalent to this to the existing Caddy configuration:
+Add a site block manually to the existing Caddy configuration:
 
 ```caddyfile
 ignition.<your-domain> {
@@ -153,65 +131,41 @@ ignition.<your-domain> {
 }
 ```
 
-Replace:
+The stack enables:
 
-- `ignition.<your-domain>` with the hostname you want to use.
-- `<RASPI-LAN-IP>` with the Raspberry Pi address running Ignition.
+```text
+gateway.useProxyForwardedHeader=true
+```
 
-The stack enables Ignition's `gateway.useProxyForwardedHeader=true` setting so Caddy's forwarded host/protocol information is honored.
+so Ignition can honor forwarded host/protocol information from Caddy. Caddy handles WebSocket upgrades automatically.
 
-Caddy's `reverse_proxy` handles WebSocket upgrades automatically, so no separate WebSocket block is required.
+Create/update DNS for the chosen hostname and reload Caddy using the existing procedure.
 
-After editing Caddy, validate/reload it using the same procedure already used for the existing Caddy installation.
+## 7. First startup
 
-Also create/update the required DNS record so the chosen hostname resolves to the Caddy endpoint.
-
-## 6. First startup
-
-After deployment, watch the Ignition container logs in Portainer. The first startup can take longer than a normal restart because the image is pulled and the Gateway is commissioned.
-
-The environment variables automatically supply:
+On first deployment, watch the Ignition container logs in Portainer. The environment variables supply:
 
 - EULA acceptance
 - Maker edition selection
-- Initial Gateway administrator
+- initial Gateway administrator
 - Maker license key
 - Maker activation token
 
-The Maker license is a leased license and therefore requires outbound Internet access from the Ignition container for license activation/renewal.
+The Maker license is leased and therefore requires outbound Internet access from the Ignition container for activation/renewal.
 
-When the Gateway is available, access it either directly for initial troubleshooting:
+When startup is complete, use either:
 
 ```text
 http://<RASPI-LAN-IP>:8088
 ```
 
-or through Caddy after DNS and Caddy have been configured:
+or, after Caddy/DNS are configured:
 
 ```text
 https://ignition.<your-domain>
 ```
 
-If the container repeatedly logs `Permission denied` for `/usr/local/bin/ignition/data/init.properties`, stop/redeploy the stack after fixing the host directory ownership:
-
-```bash
-sudo chown -R 2003:2003 /opt/ignition/data
-sudo chmod 750 /opt/ignition/data
-```
-
-Use the actual `IGNITION_DATA_PATH` if it differs from `/opt/ignition/data`.
-
-## 7. Persistence and upgrades
-
-All persistent Gateway state is stored in:
-
-```text
-/usr/local/bin/ignition/data
-```
-
-and bind-mounted to the host path set in `IGNITION_DATA_PATH`.
-
-Deleting/recreating the container therefore does not delete the Gateway configuration as long as the host data directory is retained.
+## 8. Upgrades
 
 The image is deliberately pinned to:
 
@@ -219,7 +173,7 @@ The image is deliberately pinned to:
 inductiveautomation/ignition:8.3.9
 ```
 
-A future upgrade should be an explicit repository change to the image tag followed by manually updating the YAML in Portainer's Web editor and redeploying the stack. Back up the Ignition Gateway before changing versions.
+For a future upgrade, change the image tag in the repository, copy the updated YAML into Portainer's Web editor and manually update the stack. Back up the Ignition Gateway before changing versions.
 
 ## Files
 
