@@ -53,13 +53,23 @@ Otherwise the default is:
 /opt/ignition/data
 ```
 
-Create the selected directory on the Raspberry Pi before deployment:
+Create the selected directory on the Raspberry Pi before deployment and assign it to Ignition's container user (UID/GID 2003):
 
 ```bash
 sudo mkdir -p /opt/ignition/data
+sudo chown -R 2003:2003 /opt/ignition/data
+sudo chmod 750 /opt/ignition/data
 ```
 
-Use the external-disk path instead if applicable.
+Verify:
+
+```bash
+ls -ldn /opt/ignition/data
+```
+
+The owner/group should show `2003 2003`. Do not use `chmod 777`; Ignition only needs the bind-mounted directory to be writable by its own container user.
+
+If `IGNITION_DATA_PATH` points somewhere else, run the same `mkdir`, `chown`, and `chmod` against that path instead.
 
 ## 2. Create the stack manually in Portainer
 
@@ -90,7 +100,7 @@ Set these in the Portainer Stack UI. Do **not** commit the real values to this r
 
 ```text
 GATEWAY_ADMIN_PASSWORD=<choose-a-strong-password>
-IGNITION_LICENSE_KEY=<your-Maker-license-key>
+IGNITION_LICENSE_KEY=<your-8-character-Maker-license-key>
 IGNITION_ACTIVATION_TOKEN=<your-Maker-activation-token>
 ```
 
@@ -181,6 +191,15 @@ or through Caddy after DNS and Caddy have been configured:
 ```text
 https://ignition.<your-domain>
 ```
+
+If the container repeatedly logs `Permission denied` for `/usr/local/bin/ignition/data/init.properties`, stop/redeploy the stack after fixing the host directory ownership:
+
+```bash
+sudo chown -R 2003:2003 /opt/ignition/data
+sudo chmod 750 /opt/ignition/data
+```
+
+Use the actual `IGNITION_DATA_PATH` if it differs from `/opt/ignition/data`.
 
 ## 7. Persistence and upgrades
 
