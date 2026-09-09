@@ -21,7 +21,11 @@ No separate database or other services are deployed.
 
 Ignition ships initial files inside `/usr/local/bin/ignition/data`, including files required during first startup. Docker automatically copies those existing files into a newly created empty named volume.
 
-Do not replace the named volume with an empty host bind mount for a fresh installation. A bind mount hides the files already present in the image and can cause startup errors such as a missing `gateway.xml_clean`.
+Do not replace the named volume with an empty host bind mount for a fresh installation. A bind mount hides the files already present in the image and can cause startup errors such as:
+
+```text
+cp: cannot stat '/usr/local/bin/ignition/data/gateway.xml_clean': No such file or directory
+```
 
 The official Ignition Docker examples use a named volume on `/usr/local/bin/ignition/data` for persistent Gateway state.
 
@@ -59,6 +63,14 @@ In Portainer:
 5. Click **Deploy the stack** / **Update the stack**.
 
 No Git repository deployment, webhooks, or automatic updates are required.
+
+### If upgrading the initial bind-mount version
+
+If the first deployment used `/opt/ignition/data:/usr/local/bin/ignition/data` and failed during initial startup, simply replace the Web editor YAML with the current version and update the stack. Docker will create a new named volume and seed it from the Ignition image.
+
+The old `/opt/ignition/data` directory is no longer used. If the Gateway never successfully commissioned and the directory contains no data you need, it may be removed later after the named-volume deployment is verified.
+
+If `IGNITION_DATA_PATH` is still present as a Portainer Stack environment variable from the earlier version, remove it; the current compose file does not use it.
 
 ## 3. Required Portainer environment variables
 
