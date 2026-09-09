@@ -2,7 +2,7 @@
 
 Minimal container deployment of Inductive Automation Ignition 8.3.9 Maker Edition for the home automation environment.
 
-This setup is intended for **manual deployment from Portainer**. It does not contain CI/CD, webhooks, automatic stack updates, Caddy changes, or changes to any other repository.
+This setup is intended for **manual deployment using the Portainer Stack Web editor**, matching the other manually managed stacks. It does not contain CI/CD, webhooks, automatic stack updates, Caddy changes, or changes to any other repository.
 
 ## What is deployed
 
@@ -61,35 +61,26 @@ sudo mkdir -p /opt/ignition/data
 
 Use the external-disk path instead if applicable.
 
-## 2. Deploy manually in Portainer
+## 2. Create the stack manually in Portainer
+
+The repository is only the source/reference for the stack definition. Portainer does **not** pull or deploy this repository.
 
 In Portainer:
 
 1. Go to **Stacks** -> **Add stack**.
-2. Choose **Repository**.
-3. Repository URL:
+2. Give the stack a name, for example:
 
    ```text
-   https://github.com/gammelgaard52/automation.git
+   ignition
    ```
 
-4. Repository reference after this change has been merged:
+3. Select **Web editor**.
+4. Open `Ignition/docker-compose.yml` from this repository and copy the complete YAML into the Web editor.
+5. Add the required Stack environment variables listed below under **Environment variables**.
+6. Do not enable Git/repository deployment, webhooks, or automatic updates.
+7. Click **Deploy the stack** when ready.
 
-   ```text
-   refs/heads/main
-   ```
-
-5. Compose path:
-
-   ```text
-   Ignition/docker-compose.yml
-   ```
-
-6. Leave automatic updates/webhooks disabled.
-7. Add the required Stack environment variables listed below.
-8. Deploy the stack manually.
-
-You can also use Portainer's Web editor and paste the contents of `docker-compose.yml`; the resulting container configuration is the same.
+For future changes, update the stack YAML in this repository first, then manually copy the updated YAML into the existing Portainer stack Web editor and redeploy it.
 
 ## 3. Required Portainer environment variables
 
@@ -99,7 +90,7 @@ Set these in the Portainer Stack UI. Do **not** commit the real values to this r
 
 ```text
 GATEWAY_ADMIN_PASSWORD=<choose-a-strong-password>
-IGNITION_LICENSE_KEY=<your-8-character-Maker-license-key>
+IGNITION_LICENSE_KEY=<your-Maker-license-key>
 IGNITION_ACTIVATION_TOKEN=<your-Maker-activation-token>
 ```
 
@@ -120,7 +111,7 @@ If persistent data should live on an external disk, change only `IGNITION_DATA_P
 IGNITION_DATA_PATH=/mnt/ssd/ignition/data
 ```
 
-The `.env.example` file is documentation only. Portainer environment variables are preferred for the actual deployment.
+The `.env.example` file is documentation only. The actual values should be entered as Portainer Stack environment variables.
 
 ## 4. Network exposure
 
@@ -209,7 +200,7 @@ The image is deliberately pinned to:
 inductiveautomation/ignition:8.3.9
 ```
 
-A future upgrade should be an explicit repository change to the image tag followed by a manual Portainer redeploy. Back up the Ignition Gateway before changing versions.
+A future upgrade should be an explicit repository change to the image tag followed by manually updating the YAML in Portainer's Web editor and redeploying the stack. Back up the Ignition Gateway before changing versions.
 
 ## Files
 
